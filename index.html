@@ -57,83 +57,90 @@
         }
       }
 
+      function extractTitle(raw, isMd) {
+        var frontmatterMatch = raw.match(/^---\s*\n([\s\S]*?)\n---/);
+        if (frontmatterMatch) {
+          var fm = frontmatterMatch[1];
+          var nameMatch = fm.match(/^(?:title|name)\s*:\s*(.+)$/m);
+          if (nameMatch) return nameMatch[1].replace(/^["']|["']$/g, '').trim();
+          var descMatch = fm.match(/^description\s*:\s*(.+)$/m);
+          if (descMatch) return descMatch[1].replace(/^["']|["']$/g, '').trim();
+        }
+        var body = frontmatterMatch ? raw.slice(frontmatterMatch[0].length).trim() : raw.trim();
+        if (isMd) {
+          var h = body.match(/^#{1,3}\s+(.+)$/m);
+          if (h) return h[1].trim();
+        } else {
+          var ah = body.match(/^=+\s+(.+)$/m);
+          if (ah) return ah[1].trim();
+        }
+        var firstLine = body.split('\n').find(function(l) { return l.trim().length > 0; });
+        return firstLine ? firstLine.trim().substring(0, 120) : null;
+      }
+
+      function stripFrontmatter(raw) {
+        return raw.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '');
+      }
+
       jQuery(function(){
         var s = (location.href.split("#")[0]||location.href);
         s = (s.split("?")[1]||'index');
         var md = false;
         var isRemote = false;
-        // Detectar flag &md explícito antes de cortar
         var forceMd = /(^|&)md(&|=|$)/.test(s);
         s = s.includes('&')?s.substring(0, s.indexOf('&')):s;
 
-        // Check if it's a remote URL
         if(s.startsWith('http://') || s.startsWith('https://')) {
           isRemote = true;
-          // Markdown si: flag &md, URL termina en .md, o viene de publish.ip1.cc
           md = forceMd || s.endsWith('.md') || s.indexOf('publish.ip1.cc/') !== -1;
         } else {
           s.includes('.md')?md=true:null;
         }
 
-        if(isRemote) {
-          // Function to render content
-          var renderContent = function(content) {
-            if(md) {
-              // Use Markdown format
-              $('#contents').html(_renderMD(content));
-            } else {
-              // Use AsciiDoc format
-              $('#contents').html(Asciidoctor().convert(content))
-                .find("span.icon")
-                .replaceWith(function(e) {
-                  return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
-                });
-            }
-          };
+        function renderContent(content) {
+          var t = extractTitle(content, md);
+          if (t) document.title = t;
+          var clean = stripFrontmatter(content);
+          if(md) {
+            $('#contents').html(_renderMD(clean));
+          } else {
+            $('#contents').html(Asciidoctor().convert(clean))
+              .find("span.icon")
+              .replaceWith(function(e) {
+                return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
+              });
+          }
+        }
 
-          // Try direct fetch first
+        if(isRemote) {
           fetch(s)
-            .then(response => {
-              if (!response.ok) {
-                throw new Error('Network response was not ok');
-              }
+            .then(function(response) {
+              if (!response.ok) throw new Error('Network response was not ok');
               return response.text();
             })
             .then(renderContent)
-            .catch(error => {
-              // If direct fetch fails, try with CORS proxy
+            .catch(function(error) {
               console.log('Direct fetch failed, trying CORS proxy...', error);
               var proxyUrl = 'https://notas.ip1.cc/proxy.php?url=' + encodeURIComponent(s);
               fetch(proxyUrl)
-                .then(response => {
-                  if (!response.ok) {
-                    throw new Error('Proxy response was not ok');
-                  }
+                .then(function(response) {
+                  if (!response.ok) throw new Error('Proxy response was not ok');
                   return response.text();
                 })
                 .then(renderContent)
-                .catch(proxyError => {
+                .catch(function(proxyError) {
                   $('#contents').html('<h1>Error loading remote content</h1><p>Could not load: ' + s + '</p><p>Direct fetch error: ' + error.message + '</p><p>CORS proxy error: ' + proxyError.message + '</p><p>The URL might be inaccessible or blocked.</p>');
                 });
             });
         } else {
-          // Load local file
           if( !md ) {
-              // Use AsciiDoc format
-            $('#contents').load(s+'.txt', function(){$('#contents').html(
-                Asciidoctor().convert( $('#contents').text() )
-            )
-                    // Replace icons with FontAwesome compatible icon tags:
-                    .find("span.icon")
-                    .replaceWith(
-                        function(e) {
-                            return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
-                        }
-                    );
+            $('#contents').load(s+'.txt', function(){
+              renderContent($('#contents').text());
             });
           } else {
-              // Use Markdown format
-              $('#contents').load(s, function(){$('#contents').html(_renderMD($('#contents').text()))});
+            $('#contents').load(s, function(){
+              renderContent($('#contents').text());
+            });
           }
         }
       });
