@@ -110,6 +110,7 @@ body {
 }
 #contents pre code {
   background: transparent;
+  color: inherit;
   padding: 0;
   font-size: 1em;
   white-space: pre;
