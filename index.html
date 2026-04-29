@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title># Notas #</title>
+    <link rel="stylesheet" type="text/css" href="inc/fontawesome/css/all.min.css"/>
+    <link rel="stylesheet" type="text/css" href="inc/asciidoctor.css"/>
+    <link rel="stylesheet" type="text/css" href="inc/notas.css?v=20260418i"/>
+    <link rel="stylesheet" href="inc/hljs-atom-one-dark.min.css?v=20260418i">
+    <script src="inc/jquery-2.1.1.min.js"></script>
+    <script src="inc/marked.min.js"></script>
+    <script src="inc/marked-highlight.umd.min.js"></script>
+    <script src="inc/highlight.min.js"></script>
+    <script src="inc/asciidoctor.min.js"></script>
+    <link rel="icon" type="image/png" href="/favicons/favicon-128x128.png" sizes="128x128">
+    <link rel="icon" type="image/png" href="/favicons/favicon-64x64.png" sizes="64x64">
+    <link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+    <script>
+      // Diagnóstico: indicador visible de qué parser está cargado
+      window.__NOTAS_DEBUG__ = {
+        marked: typeof marked !== 'undefined' ? (marked.version || 'present') : 'MISSING',
+        markdown: typeof markdown !== 'undefined' ? 'legacy loaded' : 'none',
+        hljs: typeof hljs !== 'undefined' ? hljs.versionString || 'present' : 'MISSING',
+        markedHighlight: typeof markedHighlight !== 'undefined' ? 'present' : 'MISSING'
+      };
+
+      // Activa highlight.js dentro de marked (si las libs están cargadas)
+      try {
+        var _mh = (window.markedHighlight && (window.markedHighlight.markedHighlight || window.markedHighlight));
+        if (_mh && window.hljs && typeof marked !== 'undefined') {
+          marked.use(_mh({
+            langPrefix: 'hljs language-',
+            highlight: function(code, lang) {
+              var language = hljs.getLanguage(lang) ? lang : 'plaintext';
+              return hljs.highlight(code, { language: language, ignoreIllegals: true }).value;
+            }
+          }));
+          window.__NOTAS_DEBUG__.hljs_init = 'ok';
+        } else {
+          window.__NOTAS_DEBUG__.hljs_init = 'skipped: marked='+(typeof marked)+' hljs='+(typeof hljs)+' mh='+(typeof markedHighlight);
+        }
+      } catch(e) {
+        window.__NOTAS_DEBUG__.hljs_init = 'error: '+e.message;
+        console.warn('highlight.js init failed:', e);
+      }
+
+      // Helper: render con marked y fallback al legacy si marked no existe
+      function _renderMD(content) {
+        if (typeof marked !== 'undefined' && marked.parse) {
+          return marked.parse(content, { gfm: true });
+        } else if (typeof markdown !== 'undefined' && markdown.toHTML) {
+          return '<div style="background:#fee;color:#900;padding:6px;border:1px solid #c00;margin-bottom:10px">⚠️ Parser legacy (markdown.js). marked.js no cargó.</div>' + markdown.toHTML(content);
+        } else {
+          return '<div style="background:#fee;color:#900;padding:6px">❌ Ningún parser de Markdown disponible.</div><pre>'+content.replace(/</g,'&lt;')+'</pre>';
+        }
+      }
+
+      jQuery(function(){
+        var s = (location.href.split("#")[0]||location.href);
+        s = (s.split("?")[1]||'index');
+        var md = false;
+        var isRemote = false;
+        // Detectar flag &md explícito antes de cortar
+        var forceMd = /(^|&)md(&|=|$)/.test(s);
+        s = s.includes('&')?s.substring(0, s.indexOf('&')):s;
+
+        // Check if it's a remote URL
+        if(s.startsWith('http://') || s.startsWith('https://')) {
+          isRemote = true;
+          // Markdown si: flag &md, URL termina en .md, o viene de publish.ip1.cc
+          md = forceMd || s.endsWith('.md') || s.indexOf('publish.ip1.cc/') !== -1;
+        } else {
+          s.includes('.md')?md=true:null;
+        }
+
+        if(isRemote) {
+          // Function to render content
+          var renderContent = function(content) {
+            if(md) {
+              // Use Markdown format
+              $('#contents').html(_renderMD(content));
+            } else {
+              // Use AsciiDoc format
+              $('#contents').html(Asciidoctor().convert(content))
+                .find("span.icon")
+                .replaceWith(function(e) {
+                  return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
+                });
+            }
+          };
+
+          // Try direct fetch first
+          fetch(s)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.text();
+            })
+            .then(renderContent)
+            .catch(error => {
+              // If direct fetch fails, try with CORS proxy
+              console.log('Direct fetch failed, trying CORS proxy...', error);
+              var proxyUrl = 'https://notas.ip1.cc/proxy.php?url=' + encodeURIComponent(s);
+              fetch(proxyUrl)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Proxy response was not ok');
+                  }
+                  return response.text();
+                })
+                .then(renderContent)
+                .catch(proxyError => {
+                  $('#contents').html('<h1>Error loading remote content</h1><p>Could not load: ' + s + '</p><p>Direct fetch error: ' + error.message + '</p><p>CORS proxy error: ' + proxyError.message + '</p><p>The URL might be inaccessible or blocked.</p>');
+                });
+            });
+        } else {
+          // Load local file
+          if( !md ) {
+              // Use AsciiDoc format
+            $('#contents').load(s+'.txt', function(){$('#contents').html(
+                Asciidoctor().convert( $('#contents').text() )
+            )
+                    // Replace icons with FontAwesome compatible icon tags:
+                    .find("span.icon")
+                    .replaceWith(
+                        function(e) {
+                            return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
+                        }
+                    );
+            });
+          } else {
+              // Use Markdown format
+              $('#contents').load(s, function(){$('#contents').html(_renderMD($('#contents').text()))});
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="contents">
+    <img style="display:block; margin: auto;" src="inc/loading.gif" alt="Cargando...">
+    </div>
+  </body>
+</html>
+

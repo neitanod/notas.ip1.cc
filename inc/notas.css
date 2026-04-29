@@ -1,0 +1,265 @@
+/* ==========================================================
+   notas.ip1.cc — Rediseño 2026-04-18
+   Reemplaza el viejo estilo verdana/recuadro por uno moderno.
+   Desktop: tarjeta centrada sobre fondo claro.
+   Mobile: edge-to-edge, sin bordes, tipografía optimizada.
+   ========================================================== */
+
+:root {
+  --fg: #1f2328;
+  --fg-muted: #656d76;
+  --bg: #ffffff;
+  --bg-page: #cccccc;  /* gris medio (clásico) */
+  --bg-alt: #f6f8fa;
+  --border: #d0d7de;
+  --border-muted: #e6e8eb;
+  --link: #0969da;
+  --accent: #d73a49;
+  --code-bg: #f6f8fa;
+  --table-stripe: #fbfcfd;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 16px; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               Helvetica, Arial, sans-serif, "Apple Color Emoji",
+               "Segoe UI Emoji";
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg-page);
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+#contents {
+  background: var(--bg);
+  max-width: 1100px;
+  width: auto;
+  padding: 32px 48px 60px;
+  margin: 24px auto 60px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(16, 32, 48, 0.06);
+  overflow: visible;
+}
+
+/* Headings */
+#contents h1, #contents h2, #contents h3,
+#contents h4, #contents h5, #contents h6 {
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+#contents h1:first-child { margin-top: 0; }
+#contents h1 {
+  font-size: 1.9em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-muted);
+  color: #772c2c;
+}
+#contents h2, #contents h3, #contents h4, #contents h5, #contents h6 {
+  color: #ba3925;
+}
+#contents h2 {
+  font-size: 1.45em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--border-muted);
+}
+#contents h3 { font-size: 1.2em; }
+#contents h4 { font-size: 1em; }
+#contents h5, #contents h6 { font-size: 0.9em; }
+
+/* Párrafos y links */
+#contents p { margin: 0.75em 0; }
+#contents a { color: var(--link); text-decoration: none; }
+#contents a:hover { text-decoration: underline; }
+
+/* Listas */
+#contents ul, #contents ol { padding-left: 1.8em; margin: 0.6em 0; }
+#contents li { margin: 0.2em 0; }
+#contents li > p { margin: 0.3em 0; }
+
+/* Inline code */
+#contents code {
+  background: var(--code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
+               Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
+/* Bloques de código (fondo oscuro matcheando atom-one-dark) */
+#contents pre {
+  background: #282c34;
+  color: #abb2bf;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.88em;
+  line-height: 1.45;
+  margin: 1em 0;
+}
+#contents pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 1em;
+  white-space: pre;
+}
+
+/* Tablas GFM */
+#contents table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.95em;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+#contents table th,
+#contents table td {
+  border: 1px solid var(--border-muted);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+#contents table th {
+  background: var(--bg-alt);
+  font-weight: 600;
+}
+#contents table tr:nth-child(even) td {
+  background: var(--table-stripe);
+}
+
+/* Blockquote moderno */
+#contents blockquote {
+  border-left: 3px solid var(--border);
+  padding: 0.3em 1em;
+  margin: 1em 0;
+  color: var(--fg-muted);
+  font-style: normal;
+  font-family: inherit;
+  font-size: 1em;
+}
+
+/* HR */
+#contents hr {
+  border: 0;
+  border-top: 1px solid var(--border-muted);
+  margin: 2em 0;
+}
+
+/* Imágenes */
+#contents img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Mantengo el comportamiento histórico: strong em en rojo */
+#contents strong em {
+  font-size: 1.1em;
+  color: var(--accent);
+  font-style: normal;
+  font-weight: bold;
+}
+
+/* Task lists (GFM) */
+#contents input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+
+/* ==========================================================
+   MOBILE — edge-to-edge, sin recuadro, tipografía compacta
+   ========================================================== */
+@media (max-width: 720px) {
+  html { font-size: 15px; }
+
+  body {
+    background: var(--bg);
+  }
+
+  #contents {
+    max-width: 100%;
+    width: auto;
+    margin: 0;
+    padding: 14px 14px 50px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  #contents h1 { font-size: 1.5em; }
+  #contents h2 { font-size: 1.25em; }
+  #contents h3 { font-size: 1.1em; }
+
+  #contents table {
+    font-size: 0.88em;
+  }
+  #contents table th,
+  #contents table td {
+    padding: 6px 8px;
+  }
+
+  #contents pre {
+    font-size: 0.8em;
+    padding: 10px 12px;
+    /* Sangría mínima para que el bloque llegue casi al borde */
+    margin-left: -4px;
+    margin-right: -4px;
+    border-radius: 4px;
+  }
+
+  #contents code {
+    font-size: 0.85em;
+  }
+
+  #contents blockquote {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* ==========================================================
+   Override de asciidoctor.css — obliga a los headings a heredar
+   la fuente del body (system fonts) en vez de la serif de asciidoctor.
+   ========================================================== */
+h1, h2, h3, h4, h5, h6,
+#toctitle,
+.sidebarblock > .content > .title {
+  font-family: inherit !important;
+}
+
+/* ==========================================================
+   Admonition blocks (AsciiDoc / asciidoctor) — sin cambios
+   ========================================================== */
+.admonitionblock .icon { width: 50px !important; }
+.admonitionblock .icon .title {
+  font-weight: 900;
+  font-family: "Font Awesome 5 Free" !important;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-size: 0;
+}
+.admonitionblock .icon .title:before {
+  font-size: 24px;
+  cursor: default;
+}
+.admonitionblock.tip .icon .title:before       { content: "\f0eb"; color: #ed8940; }
+.admonitionblock.note .icon .title:before      { content: "\f05a"; color: #19407c; }
+.admonitionblock.important .icon .title:before { content: "\f06a"; color: #bf0000; }
+.admonitionblock.caution .icon .title:before   { content: "\f06d"; color: #bf3400; }
+.admonitionblock.warning .icon .title:before   { content: "\f071"; color: #bf6900; }

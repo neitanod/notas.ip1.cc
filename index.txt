@@ -1,0 +1,12 @@
+= =
+
+# Páginas
+
+  - link:?shellscripting[Guía rápida de shell scripting]
+  - link:?notas[Notas]
+  - link:?recursos[Recursos]
+  - link:?asciidoc[AsciiDoc Cheatsheet]
+  - https://fontawesome.com/icons?d=gallery&m=free[Font Awesome free icons]
+  - link:?markdown.md[Markdown Cheatsheet]
+
+--

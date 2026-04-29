@@ -1,0 +1,27 @@
+= Páginas
+:showtitle:
+
+  - Probar "Tmux copycat"
+  - Poner Steve Vai en el pen drive del auto   ♫♫
+  - Probar dwb web browser, ver como se configura (.dwbrc?)
+
+### Tutoriales
+  - https://www.youtube.com/watch?v=pOdWEoUTwD4&list=PLEtcGQaT56chQN6n4byqRIMYnTHpgkG6m[Tutorial de Laravel Completo - 15 videos, 3 horas y media]
+  - Episodio 4: http://youtu.be/orcDlYaApIg?list=PLEtcGQaT56chQN6n4byqRIMYnTHpgkG6m
+  - http://vimcasts.org/blog/2014/08/doing-more-with-each-change/[Vimcasts: Doing more with each change]
+  - http://www.jnanam.net/pentadactylemacs/.pentadactylrc[Pentadactyl .rc]
+  - https://gist.github.com/fwonce/824733[Otro Pentadactyl .rc]
+  - https://github.com/k4rthik/dotfiles[dotfiles]
+
+### Interesantes
+  - https://www.youtube.com/watch?v=GpMuubZSuy4[Humberto Maturana: Como vivimos compitiendo, siempre estamos negando a los demás]
+
+### Varios
+
+link:?comprar[Lista de compras]
+
+link:?markdown[Markdown Cheatsheet]
+
+https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]
+
+icon:tags[role="blue"] ruby, asciidoctor

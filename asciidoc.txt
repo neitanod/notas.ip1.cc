@@ -1,0 +1,314 @@
+= AsciiDoc cheat sheet
+:showtitle:
+:toc: macro
+
+[.text-right]
+****
+toc::[]
+****
+
+
+== {counter:index}. Links
+
+link:asciidoc.txt[Source code for this file]
+
+https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]
+
+
+
+== {counter:index}. Estilos de texto inline
+
+Este es un párrafo.  Contiene _texto en itálica_, *texto en negrita* y `texto monospaciado`.
+También contiene medias palabras en ne**grita** e itá__lica__.
+
+También se pueden asignar [.custom_class_name]#clases CSS definidas por el usuario# como [.custom_class_name]_estas_.
+
+[.special_css_class]
+También a los párrafos se les pueden asignar clases CSS.
+
+[.text-center]
+Algunas de estas clases (como _.text-center_) ya tienen función predefinida.
+
+icon:tag[]
+
+icon:project-diagram[]
+
+icon:shopping\-cart[] Algo
+
+icon:tags[] Has some text
+
+icon:tags[role="blue"] ruby, asciidoctor
+
+== {counter:index}. Bloques de código
+
+[source,bash,numbered]
+----
+#!/usr/bin/env bash
+Code goes here
+----
+
+ Este es un "párrafo literal" por estar indentado
+ al menos *un espacio*.
+
+....
+Y este es un "párrafo literal" por estar delimitado, no indentado.
+....
+
+____
+The `'90s popularized a new form of music known as "`grunge`" rock.
+Its influence extended well beyond music.
+
+Este bloque es una cita.
+____
+
+
+--
+Open block
+--
+
+
+[.text-center]
+.Bloques aparte
+****
+AsciiDoc was first released in Nov 2002 by Stuart Rackham.
+
+[.text-right]
+It was designed from the start to be a shorthand syntax
+
+[.text-left]
+for producing professional documents like DocBook and LaTeX.
+****
+
+
+
+
+== {counter:index}. Admoniciones
+
+TIP: Hay 5 tipos de admoniciones
+
+NOTE: TIP, NOTE, IMPORTANT, CAUTION y WARNING
+
+IMPORTANT: Según el theme pueden verse con íconos.
+
+CAUTION: O con texto "Caution:".
+
+WARNING: Este es el último.
+
+OTROS: No funcionan.
+
+
+== {counter:index}. Admonition blocks
+
+[TIP]
+====
+Este es un bloque de admonición.  Puede contener AsciiDoc dentro.
+
+link:/[Por ejemplo un link]
+
+Varios párrafos...
+
+CAUTION: incluso otras admoniciones!
+
+====
+
+
+[IMPORTANT]
+.Los admonition blocks pueden tener un título
+====
+While werewolves are hardy community members, keep in mind the following dietary concerns:
+
+. They are allergic to cinnamon.
+. More than two glasses of orange juice in 24 hours makes them howl in harmony with alarms and sirens.
+. Celery makes them sad.
+====
+
+
+
+
+
+== {counter:index}. Tablas
+
+
+[%autowidth]
+|===
+| Col 1 | Col 2 | Col 3
+
+| Cell in column 1, row 1 | Cell in column 2, row 1 | Cell in column 3, row 1
+| Cell in column 1, row 2 | Cell in column 2, row 2 | Cell in column 3, row 2
+|===
+
+
+[%autowidth.stretch]
+|===
+| Col 1 | Col 2 | Col 3
+
+| Cell in column 1, row 1 | Cell in column 2, row 1 | Cell in column 3, row 1
+| Cell in column 1, row 2 | Cell in column 2, row 2 | Cell in column 3, row 2
+|===
+
+
+[cols="h,m,s,e"]
+|===
+|First column is a header
+|Second one is monospaced
+|Third is styled
+|Fourth is strong styled
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|Cell in column 3, row 2
+|Cell in column 4, row 2
+
+|Cell in column 1, row 3
+2+|Cell in column 2, row 3 spans 2 columns
+|Cell in column 3, row 3
+
+|Cell in column 1, row 4
+.2+|Cell in column 2, row 4
+|Cell in column 3, row 4
+.2+|Cell in column 4, row 4
+
+|Cell in column 1, row 5
+|Cell in column 3, row 5
+|===
+
+
+[cols="3"]
+|===
+^|Prefix the `{vbar}` with `{caret}` to center content horizontally
+<|Prefix the `{vbar}` with `<` to align the content to the left horizontally
+>|Prefix the `{vbar}` with `>` to align the content to the right horizontally
+
+.^|Prefix the `{vbar}` with a `.` and `{caret}` to center the content in the cell vertically
+.<|Prefix the `{vbar}` with a `.` and `<` to align the content to the top of the cell
+.>|Prefix the `{vbar}` with a `.` and `>` to align the content to the bottom of the cell
+
+3+^.^|This content spans three columns (`3{plus}`) and is centered horizontally (`{caret}`) and vertically (`.{caret}`) within the cell.
+
+|===
+
+
+[cols="2",width=75%]
+|===
+
+a|This cell is prefixed with an `a`, so the processor interprets the following lines as an AsciiDoc list.
+
+* List item 1
+* List item 2
+* List item 3
+|This cell *is not* prefixed with an `a`, so the processor does not interpret the following lines as an AsciiDoc list.
+
+* List item 1
+* List item 2
+* List item 3
+
+a|This cell is prefixed with an `a`, so the processor honors the `lead` style on the following paragraph.
+
+[.lead]
+I am a paragraph styled with the lead attribute.
+|This cell *is not* prefixed with an `a`, so the processor does not honor the `lead` style on the following paragraph.
+
+[.lead]
+I am a paragraph styled with the lead attribute.
+|===
+
+
+|===
+|Cells with Source Code |Source Code 2
+
+a|
+[source,python]
+----
+import os
+print "%s" %(os.uname())
+----
+
+a|
+[source,python]
+----
+import os
+print ("%s" %(os.uname()))
+----
+|===
+
+
+
+[cols=2*,options="header"]
+|===
+|Name of Column 1
+|Name of Column 2
+
+|This table has a header
+|
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|===
+
+|===
+|Name of Column 1 |Name of Column 2
+
+|This table has a header
+|
+
+|El heade es implícito porque la primer linea de la tabla tiene celdas y la segunda está en blanco.
+|
+|===
+
+
+|===
+|Shortcut |Purpose
+
+|kbd:[F11]
+|Toggle fullscreen
+
+|kbd:[Ctrl+T]
+|Open a new tab
+
+|kbd:[Ctrl+Shift+N]
+|New incognito window
+
+|kbd:[\ ]
+|Used to escape characters
+
+|kbd:[Ctrl+\]]
+|Jump to keyword
+
+|kbd:[Ctrl + +]
+|Increase zoom
+|===
+
+
+
+
+== {counter:index}. Imágenes
+
+Inline image...  image:images/slither.png[Mario]
+
+Block image...
+
+image::images/slither.png[Mario]
+
+
+
+
+== {counter:index}. Listas
+
+
+. Esta
+. es
+. una
+. lista
+
+
+- Esta
+- también
+
+
+== Subscript y Superscript
+
+****
+____
+"`Well the H~2~O formula written on their whiteboard could be part of a shopping list, but I don't think the local bodega sells E=mc^2^,`" Lazarus replied.
+____
+****

@@ -1,0 +1,878 @@
+= Guia rápida de shell scripting
+:showtitle:
+:icons: font
+:toc-title: Contenidos
+:toc:
+
+== {counter:index}. Shebang:
+
+[source,bash]
+----
+    #!/bin/bash
+----
+
+TIP: Regla mnemotécnica para no escribirlo al revés:  el `!` se pronuncia "bang"
+y el `#` "hash", de ahí sale el nombre "Shebang"
+
+TIP: `#!/usr/bin/env bash` es más portable (env siempre está en el mismo lugar,
+bash puede no estar en /bin) Sobre todo si en vez de bash se está tratando de
+encontrar otro intérprete como python o php, cuyas ubicaciones varían más
+
+[source,bash]
+----
+    #!/usr/bin/env bash
+----
+
+== {counter:index}. Pasar parámetros:
+
+[source,bash]
+----
+    #!/bin/bash
+    php "$HOME/bin/gotodir/go.php" $*     # Pasa todos los parámetros
+----
+
+NOTE: `$@` contiene un array con los argumentos, mientras que `$*` contiene a
+todos los argumentos en una sola cadena.
+
+
+== {counter:index}. Verificar si un parámetro fué pasado o no:
+
+[source,bash]
+----
+    if [[ -z "$1" ]]                      # -z devuelve true si es un string vacío
+      then
+        echo "No argument supplied"
+        exit 1                            # Abandona el script porque lo
+                                          # consideramos un error
+    fi
+
+    if [[ $# -eq 0 ]]                     # $# contiene la cantidad de argumentos pasados
+      then
+        echo "No argument supplied"
+        exit 1                            # Abandona el script porque lo
+                                          # consideramos un error
+    fi
+
+    if [[
+          "$1" == "-h" ||
+          "$1" == "--help"
+       ]]                                 # $1 es igual a -h o a --help ?
+      then
+        cat doc/help.txt
+        exit 0                            # Abandona el script sin considerarlo un error
+    fi
+----
+
+NOTE: `$@` contiene un array con los argumentos, mientras que `$*` contiene a
+todos los argumentos en una sola cadena.
+
+[source,bash]
+----
+    for arg in "$@"
+    do
+        if [[
+            "$arg" == "-h" ||
+            "$arg" == "--help"
+        ]]
+        then
+            cd "$(dirname "$0")"
+            cat deploy.go.mapsentry.com.txt
+            exit 0
+        fi
+
+        if [[
+            "$arg" == "--no-js" ||
+            "$arg" == "--install-precompiled-js"
+        ]]
+        then
+            skip_mpn="yes"
+            skip_gulp="yes"
+        fi
+
+        if [[
+            "$arg" == "--install-precompiled-js"
+        ]]
+        then
+            install_precompiled_js="yes"
+        fi
+
+    done
+
+
+    # Luego uso lo que averigüé examinando cada variable creada:
+
+    # if zero
+    if [[ -z "$skip_mpn" ]]
+        then
+            npm install
+        else
+            echo npm install SKIPPED
+    fi
+
+    # if nonzero
+    if [[ -n "$install_precompiled_js" ]]
+        then
+            echo_and_log    echo
+            echo_and_log    echo "Installing precompiled app.js from repository"
+            echo_and_log    echo "---------------------------------------------"
+            echo_and_log    cp ${target_path}/public/js_precompiled/app.js ${target_path}/public/js/app.js
+    fi
+
+    # Tutorial rápido de "getopts":     https://archive.is/TRzn4
+
+    # Usar getopts es seguro, usar getopt (sin s final) no.
+    # getopts es un comando interno de bash.  getopt es un binario GNU con
+    # distintas implementaciones.
+
+    # Ejemplo de getopts:
+
+    while getopts ":a:" opt; do
+      case $opt in
+        a)
+          echo "-a was triggered, Parameter: $OPTARG" >&2
+          ;;
+        \?)
+          echo "Invalid option: -$OPTARG" >&2
+          exit 1
+          ;;
+        :)
+          echo "Option -$OPTARG requires an argument." >&2
+          exit 1
+          ;;
+      esac
+    done
+----
+
+== {counter:index}. Imprimir a stderr
+
+[source,bash]
+----
+    echo "Error message" >&2
+----
+
+== {counter:index}. Recibir optativamente el input mediante un pipe (stdin)
+
+[source,bash]
+----
+    #!/bin/bash
+
+    if [[ "$1" == "--stdin" ]]  # mantengo esta parte separada para manejarla como mejor convenga
+      then
+        use_stdin=true
+    fi
+
+    input=$([[ "$use_stdin" == true ]] && cat || echo "$1")
+
+    echo "Input: [" $input "]"
+----
+
+Ejemplo de uso:
+
+[source,bash]
+----
+    $ echo "Hola desde stdin" | ./script.sh --stdin
+    Input: [Hola desde stdin]
+
+    ./script.sh "Texto directo"
+    Input: [Texto directo]
+
+    ./script.sh
+    Input: []
+----
+
+== {counter:index}. Ejecutar en la carpeta del script:
+
+[source,bash]
+----
+    #!/bin/bash
+    cd "$(dirname "$0")"
+----
+
+== {counter:index}. Obtener la carpeta del script:
+
+[source,bash]
+----
+    #!/bin/bash
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+----
+
+NOTE: Es más robusto que simplemente `script_dir="$(dirname "$0")"` (que no resuelve symlinks ni sourced scripts y además podría devolver paths relativos).
+
+== {counter:index}. Cargar funciones de mi librería
+
+[source,bash]
+----
+    #!/bin/bash
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    source "$script_dir/my_lib/parse-args"
+    source "$script_dir/my_lib/errors"
+
+    prepare_boolean_arg "--help" "-h" "Show this help and exit"
+    prepare_boolean_arg "--ding" "-d" "Play ding sound"
+    prepare_arg "--message" "-m" "Especify message (default: \"Hello World!\")"
+    prepare_arg "--error" "-e" "Especify error message"
+
+    parse_args "$@"
+
+    show_help_and_exit_if_requested "$(basename $0) notice [options] [content]"
+
+    error_message=$(get_arg "--error")
+
+    if [[ -n "$error_message" ]]; then
+        # print to stderr
+        echo $error_message >&2
+    fi
+
+    if eval_arg "--ding"; then     # Evaluar con eval_arg
+        if ! command -v paplay &> /dev/null; then
+            echo "Warning: 'paplay' no está instalado." >&2
+            echo "Puedes instalarlo ejecutando:" >&2
+            echo "  sudo apt install pulseaudio-utils" >&2
+        else
+            paplay "$script_dir/lib/ding.mp3"
+        fi
+    fi
+
+    echo $(get_arg "--message" "Hello World!")
+
+    # etc.
+----
+
+== {counter:index}. Obtener el nombre del script:
+
+[source,bash]
+----
+    SCRIPT_NAME=$(basename "$0")
+    echo $SCRIPT_NAME
+----
+
+[source,bash]
+----
+    echo #!/bin/bash
+    if [ $# -eq 0 ]    # $# contiene la cantidad de argumentos recibidos
+    then
+       # Si es 0 imprimo la ayuda, mostrando el nombre del script.
+
+       echo Usage:    $(basename "$0") "<hostname>"
+       echo
+       echo "      will do something with hostname"
+       exit 1
+    fi
+----
+
+== {counter:index}. Concatenar ejecuciones:
+
+[source,bash]
+----
+    countdown 10 ; decir "Hola"           # Corre el segundo sin impotar si el primero tuvo exito o falló
+    cp a b/b && decir "Archivo copiado"   # Sólo corre el segundo si el primero terminó sin error (AND)
+    cp a b/b || decir "ERROR"             # Sólo corre el segundo si el primero terminó con error (OR)
+----
+
+== {counter:index}. Saber el resultado de una ejecución (errorlevel, donde 0 es sin error)
+
+[source,bash]
+----
+    cp a b/b ; echo $?     # $? es el nivel de error.  Si el archivo a o la carpeta b no existen, habrá error
+----
+
+== {counter:index}. Especificar el errorlevel de un script
+
+[source,bash]
+----
+    exit 10         # termina el script con errorlevel 10
+    variable=5
+    exit $variable  # termina el script con el valor de $variable como errorlevel
+                    # 255 como máximo, si se indica mas se calcula el módulo:  $varable % 256
+----
+
+== {counter:index}. Abortar ante el fallo de un comando ejecutado
+
+[source,bash]
+----
+    exit_on_error() {
+        if [ $? -ne 0 ]; then
+            echo "Error: $1" >&2
+            exit 1  # Aborta todo el script
+        fi
+    }
+----
+
+Se usa así:
+
+[source,bash]
+----
+    comando_que_puede_fallar
+    exit_on_error "Falló el comando"
+
+    ls /ruta/que/existe
+    exit_on_error "No se pudo listar /ruta/que/existe"
+
+    ls /ruta/que/no/existe
+    exit_on_error "No se pudo listar /ruta/que/no/existe";
+----
+
+== {counter:index}. Usar variable locales (al script)
+
+[source,bash]
+----
+    variable="valor"
+    echo El valor guardado es \"$variable\"
+    huboerror=$?
+    #no dejar espacio entre el nombre de la variable y el signo igual
+    echo "El errorlevel en aquel punto del programa fué: $huboerror"
+----
+
+== {counter:index}. Obtener la fecha actual en distintos formatos
+
+[source,bash]
+----
+    date +%Y%m%d   # imprime en formato YYYYmmdd
+    man date       # para ver otros formatos
+----
+
+== {counter:index}. Incluir la salida de un subcomando en el comando a correr con backticks:
+
+[source,bash]
+----
+    echo "La fecha actual es: `date +"%-d del %-m de %Y"`"
+----
+
+== {counter:index}. Generar número random
+
+[source,bash]
+----
+    echo $RANDOM                         # Random de alrededor de 5 cifras
+    echo $RANDOM$RANDOM                  # Random de alrededor de 10 cifras
+    echo $(( ( $RANDOM % 10 ) + 1 ))             # Random entre 1 y 10
+    echo $(( ( $RANDOM % 100 ) + 5 ))            # Random entre 5 y 104, el 100 acota (entre 0 y 99) y el 5 desplaza (+5)
+    echo $(( ( $RANDOM$RANDOM % 10000000 ) ))    # Random de hasta 7 cifras (los ceros del cociente)
+----
+
+== {counter:index}. Generar nombre de archivo temporal
+
+[source,bash]
+----
+    tmpfile="`date +"/tmp/processing_%Y%m%d%H%M%S"`$RANDOM.txt"
+    echo $tmpfile           # Imprime algo como: /tmp/processing_201502162154089780.txt
+----
+
+== {counter:index}. Redirigir salida a archivo
+
+[source,bash]
+----
+    ls > listado.txt    # Sobreescribe listado.txt, si no existe lo crea
+    ls >> listado.txt   # Agrega al contenido que ya existia en listado.txt, si no existe lo crea
+
+    ls 1&> out.txt       # Redirije la salida estándar a un archivo
+    ls 2&> out.txt       # Redirije la salida de errores a un archivo
+
+    ls 2&>/dev/null     # Suprime los errores
+----
+
+== {counter:index}. Redirigir entrada desde archivo
+
+[source,bash]
+----
+    sort << listado.txt
+----
+
+== {counter:index}. Redirigir salida a la entrada de otro comando
+
+[source,bash]
+----
+    ls | sort
+    ls | sort | more     # Se pueden concatenar varios
+    find . | less        # less is more
+----
+
+== {counter:index}. HEREDOC
+
+[source,bash]
+----
+    wc << EOF
+      wc va a contar las palabras,
+      lineas y caracteres de este bloque
+      de texto que consiste en un HEREDOC,
+      es decir, un bloque que será enviado
+      a la entrada estándar del comando wc.
+      El bloque termina cuando el delimitador
+      indicado en la primer linea (en este
+      caso la palabra EOF) aparece solo
+      en una línea, sin espacios adelante
+      ni atrás, y sin otras palabras.
+    EOF
+----
+
+== {counter:index}. HEREDOC con redirección de salida
+
+[source,bash]
+----
+    mysql > tablas.txt << EOF
+     use information_schema
+     show tables
+    EOF
+
+    # La redirección debe indicarse antes que el heredoc
+    # No funciona con |.
+----
+
+== {counter:index}. Evaluar expresiones con `$\(( &lt;expr&gt; ))` y con \``expr``
+
+[source,bash]
+----
+    echo $((2+2))                   # imprime "4"
+    echo $((2*3))                   # imprime "6"
+    echo $((10/3))                  # imprime "3" (trunca en los enteros)
+    echo $((2+2))+$((2*3))          # imprime "4+6"
+    echo $(((2+2)+(2*3)))           # imprime "10"
+    echo $(( $((2+2))+$((2*3)) ))   # imprime "10"
+    echo $(( 10 > 9 ))              # imprime "1" porque es TRUE
+    expr 2 + 2                      # imprime "4", expr es compatible con Bourne Shell
+    expr 2 * 2                      # Error de sintaxis!  el * tiene que ser escapado pero sólo con expr,
+                                    # no es necesario con $((  ))
+    expr 2 \* 2                     # imprime "4"
+    echo `expr 2 + 2`               # imprime "4"
+    man expr                        # para ver otras expresiones
+----
+
+== {counter:index}. Matemática con coma flotante (float)
+
+[source,bash]
+----
+    val1=10
+    val2=3
+    resultado=`echo "scale=2; $val1/$val2" | bc`       # usando bash calculator (bc).
+                                                       # scale define el número de lugares decimales
+                                                       # que se desean recibir, por defecto 0
+    man bc            # para ver formas de uso avanzadas del intérprete matemático
+----
+
+== {counter:index}. Bloque IF THEN ELSE básico
+
+[source,bash]
+----
+    if expr 0; then ls; else ls -la; fi
+       # "expr 0" es un comando ejecutable
+       #    errorlevel = 0 -> true
+       #    errorlevel != 0 -> false
+       #  si expr evalua en 0 null el errorlevel devuelto
+       #  es 1 (código de error distinto de cero => concluyó sin éxito => falso)
+       #  si expr evalua en otro valor el errorlevel devuelto
+       #  es 0 (código de error igual a cero, "no error", concluyó con éxito => verdadero)
+       #  si el errorlevel es 2 o 3 hubo un error al tratar de evaluar
+
+    if expr 0
+    then
+      ls
+    elif expr 1
+    then
+      ls -w 50
+    else
+      ls -la
+    fi
+       # los ; son intercambiables con Enter
+
+    if expr 0; then
+      ls
+    else
+      ls -la
+    fi
+----
+
+== {counter:index}. Evaluar condiciones avanzadas en un bloque IF THEN ELSE
+
+[source,bash]
+----
+    # IF sólo evalúa el errorlevel y no otras condiciones.
+    # El comando "test" permite evaluar condiciones avanzadas y devuelve su errorlevel de acuerdo a si son true o false
+    if test -n "something"; then echo "La cadena evaluada tiene un largo mayor a 0 (nonzero)."; fi
+    if test -z "";          then echo "La cadena evaluada está vacía, es decir que tiene un largo de 0 (zero-lenght)."; fi
+
+    # Forma abreviada de escribir el comando "test":  [ expresión ]
+    if [ -n "something" ]; then echo "La cadena evaluada tiene un largo mayor a 0 (nonzero)."; fi
+    if [ -z "" ];          then echo "La cadena evaluada está vacía, es decir que tiene un largo de 0 (zero-lenght)."; fi
+
+    if [ 5 -gt 4 ]; then echo 5 es mayor que 4; fi
+        #
+        #   Sólo para enteros:
+        #     -eq -> equal to
+        #     -ne -> not equal to
+        #     -gt -> greater than
+        #     -lt -> less than
+        #     -ge -> greater or equal
+        #     -le -> less or equal
+        #
+        #   Comparación de cadenas:
+        #     \>  -> mayor, escapado para que bash no lo considere una redirección de output
+        #            no usar con números, los trata como cadenas (55 \> 444 = true)
+        #     \<  -> menor, escapado para que bash no lo considere una redirección de input
+        #            no usar con números, los trata como cadenas (444 \< 55 = true)
+        #     =  -> igual
+        #     != -> distinto
+        #     -n -> non-zero length
+        #     -z -> zero length
+
+    ( EXPRESSION )             # EXPRESSION is true
+    ! EXPRESSION               # EXPRESSION is false
+    EXPRESSION1 -a EXPRESSION2 # both EXPRESSION1 and EXPRESSION2 are true
+    EXPRESSION1 -o EXPRESSION2 # either EXPRESSION1 or EXPRESSION2 is true
+    -n STRING                  # the length of STRING is nonzero
+    -z STRING                  # the length of STRING is zero
+    STRING1 = STRING2          # the strings are equal
+    STRING1 != STRING2         # the strings are not equal
+    INTEGER1 -eq INTEGER2      # INTEGER1 is equal to INTEGER2
+    INTEGER1 -ge INTEGER2      # INTEGER1 is greater than or equal to INTEGER2
+    INTEGER1 -gt INTEGER2      # INTEGER1 is greater than INTEGER2
+    INTEGER1 -le INTEGER2      # INTEGER1 is less than or equal to INTEGER2
+    INTEGER1 -lt INTEGER2      # INTEGER1 is less than INTEGER2
+    INTEGER1 -ne INTEGER2      # INTEGER1 is not equal to INTEGER2
+    FILE1 -ef FILE2            # FILE1 and FILE2 have the same device and inode numbers
+    FILE1 -nt FILE2            # FILE1 is newer (modification date) than FILE2
+    FILE1 -ot FILE2            # FILE1 is older than FILE2
+                               #
+    -e FILE                    # FILE exists
+    ! -e FILE                  # FILE does not exist
+                               #
+    -f FILE                    # FILE exists and is a regular file
+    -d FILE                    # FILE exists and is a directory
+    -l FILE                    # FILE exists and is a symbolic link (same as -L)
+                               #
+    -s FILE                    # FILE exists and has a size greater than zero
+                               #
+    -r FILE                    # FILE exists and read permission is granted
+    -w FILE                    # FILE exists and write permission is granted
+    -x FILE                    # FILE exists and execute (or search) permission is granted
+                               #
+    -S FILE                    # FILE exists and is a socket
+
+    man test                   # para ver otras posibles evaluaciones
+----
+
+== {counter:index}. Descargar y ejecutar un script remoto
+
+[source,bash]
+----
+    # Usando wget
+    bash <(wget -qO- http://miserver.com/miscript.txt)
+
+    # Usando curl
+    bash <(curl -s http://miserver.com/miscript.txt)
+----
+
+== {counter:index}. Ejecutar un comando en una máquina remota via SSH
+
+[source,bash]
+----
+    ssh -t user@remote 'ls'
+----
+
+== {counter:index}. Eliminar una subcadena del principio o final de otra
+
+[source,bash]
+----
+    string="hello-world"
+    prefix="hell"
+    suffix="ld"
+
+    # Queremos obtener: "o-wor"
+    foo=${string#"$prefix"}
+    foo=${foo%"$suffix"}
+    echo "${foo}"   # o  echo $foo
+    o-wor
+
+    # Llamando al script con un archivo queremos eliminar la extensión .tar.gz
+    table=${1%".tar.gz"}
+    echo $table
+----
+
+== {counter:index}. Ejecutar otro script desde el script actual
+
+Tres posibles maneras:
+
+Para hacer ejecutable a otro script agregar `#!/bin/bash` al principio,
+cambiar sus permisos y agregar el path donde se encuentra dicho script a la
+variable de entorno `$PATH` . De ese modo se puede ejecutar como cualquier
+comando del sistema.
+
+Otra opción es llamarlo con el comando source (su alias es .) de este modo: `source /path/to/script;`
+
+La más usada, sin embargo, es simplemente ejecutar `/bin/bash /path/to/script;`.
+(esta opción permite pasarle argumentos)
+
+
+== {counter:index}. Ejecutar un comando para varios archivos de una carpeta
+
+[source,bash]
+----
+    for filename in ./*.js
+    do
+        echo ${filename}
+    done
+----
+
+== {counter:index}. Eliminar viejos builds (elimina las primeras subcarpetas de una carpeta dejando sólo N carpetas sin borrar)
+
+[source,bash]
+----
+
+    #!/bin/bash
+
+    # remove-old-builds.sh
+
+    # Max Builds to keep
+    MAX=3
+
+    DIR=$1
+    COMMAND="find $DIR -maxdepth 1 ! -path $DIR -type d"
+    TOTAL=`$COMMAND | wc -l`
+
+    for i in `$COMMAND | awk -F "/" '{print $NF}' | sort -n`; do
+        if [ "$TOTAL" -gt "$MAX"  ]; then
+            echo Removing build $i
+            rm -rf $DIR/$i
+        fi
+
+        (( TOTAL--  ));
+    done
+----
+
+== {counter:index}. Informar tiempo transcurrido en segundos
+
+[source,bash]
+----
+    job_started=$(date +%s)
+    step1_started=$(date +%s)
+
+    # some commands here
+
+    step1_finished=$(date +%s)
+    step2_started=$(date +%s)
+
+    # some commands here
+
+    step2_finished=$(date +%s)
+    job_finished=$(date +%s)
+
+    echo "Step 1 completed in $(($step1_finished - $step1_started)) seconds.  -  TASK 1 NAME HERE"
+    echo "Step 2 completed in $(($step2_finished - $step2_started)) seconds.  -  TASK 2 NAME HERE"
+
+    echo "Job completed in $(($deploy_finished - $deploy_started)) seconds."
+----
+
+== {counter:index}. Echo and log: Mostrar en consola pero también redirigir a archivo
+
+[source,bash]
+----
+    log_file="/var/log/my_log_file.log"
+    function echo_and_log() {
+        $@ 2>&1 | tee -a ${log_file}
+    }
+
+    echo_and_log    echo "Listing directory"
+    echo_and_log    ls
+    echo_and_log    echo "Done"
+----
+
+== {counter:index}. Copiar un path completo con Rsync
+
+[source,bash]
+----
+    rsync -a  --exclude=".git" --exclude="node_modules" ${source_root}/ ${target_path}
+----
+
+== {counter:index}. Capturar palabras de stdin
+
+[source,bash]
+----
+    y=$(echo $x | awk '{print $2}')
+    echo $y
+
+    #  echo $x display the value of x.
+    #  awk '{print $2}' prints the second field of the previously displayed x.
+    #  $(...) hold the output and let assign it to y.x
+----
+
+[source,bash]
+----
+    kill $(ps aux | grep program_name | grep -v grep | awk '{print $2}')
+    # Will kill program_name by ID (-v will exclude grep's process itself)
+----
+
+== {counter:index}. Quitar espacios y otros caracteres del principio y final de una cadena (trim)
+
+[source,bash]
+----
+    PERCENT=`df -h . --output=pcent | tail -1`
+    AVAIL=`df -h . --output=avail | tail -1`
+    MOUNT_POINT=`df -h . --output=target | tail -1`
+
+    PERCENT=`echo ${PERCENT} | sed -e 's/^[ ]*//'` # trim left
+    PERCENT=`echo ${PERCENT} | sed -e 's/[ ]*$//'` # trim right
+    PERCENT=`echo ${PERCENT} | sed -e 's/\%$//'` # remove '%' character from the end
+
+    AVAIL=`echo ${AVAIL} | sed -e 's/^[ ]*//'` # trim left
+
+    echo "${AVAIL} available (${PERCENT}% used) in ${MOUNT_POINT}."
+----
+
+== {counter:index}. Arrays
+
+https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays[Artículo muy completo sobre arrays]
+
+[source,bash]
+----
+    allThreads=(1 2 4 8 16 32 64 128)
+    # también es válido:  myArray=(1 2 "three" 4 "five")
+
+    # loop entre los valores:
+
+    for t in ${allThreads[@]}; do
+      ./pipeline --threads $t
+    done
+
+    # loop entre los indices:
+
+    for i in ${!allThreads[@]}; do
+      ./pipeline --threads ${allThreads[$i]}
+    done
+
+    # recolectando en arrays:
+
+    myArray+=( "newElement1" "newElement2" ) # añade elementos al array
+
+    output=$( ./my_script.sh )  # guarda un solo valor (obtenido de stdout de
+                                # otro programa) en una variable string
+    myArray+=( $output ) # añade el elemento obtenido al array
+----
+
+Ejemplo:
+
+[source,bash]
+----
+    allThreads=(1 2 4 8 16 32 64 128)
+    allRuntimes=()
+    for t in ${allThreads[@]}; do
+      runtime=$(./pipeline --threads $t)
+      allRuntimes+=( $runtime )
+    done
+----
+
+Otro ejemplo:
+
+[source,bash]
+----
+# List of logs and who should be notified of issues
+logPaths=("api.log" "auth.log" "jenkins.log" "data.log")
+logEmails=("jay@email" "emma@email" "jon@email" "sophia@email")
+
+# Look for signs of trouble in each log
+for i in ${!logPaths[@]};
+do
+  log=${logPaths[$i]}
+  stakeholder=${logEmails[$i]}
+  numErrors=$( tail -n 100 "$log" | grep "ERROR" | wc -l )
+
+  # Warn stakeholders if recently saw > 5 errors
+  if [[ "$numErrors" -gt 5 ]];
+  then
+    emailRecipient="$stakeholder"
+    emailSubject="WARNING: ${log} showing unusual levels of errors"
+    emailBody="${numErrors} errors found in log ${log}"
+    echo "$emailBody" | mailx -s "$emailSubject" "$emailRecipient"
+  fi
+done
+----
+
+Otro ejemplo:
+
+[source,bash]
+----
+endpoint="https://jsonplaceholder.typicode.com/comments"
+allEmails=()
+
+# Query first 10 posts
+for postId in {1..10};
+do
+  # Make API call to fetch emails of this posts's commenters
+  response=$(curl "${endpoint}?postId=${postId}")
+
+  # Use jq to parse the JSON response into an array
+  allEmails+=( $( jq '.[].email' <<< "$response" ) )
+done
+----
+
+Manupulación de arrays:
+
+[source,bash]
+----
+# Syntax         # Result
+
+  arr=()         # Create an empty array
+  arr=(1 2 3)    # Initialize array
+  ${arr[2]}      # Retrieve third element
+  ${arr[@]}      # Retrieve all elements
+  ${!arr[@]}     # Retrieve array indices
+  ${#arr[@]}     # Calculate array size
+  arr[0]=3       # Overwrite 1st element
+  arr+=(4)       # Append value(s)
+  str=$(ls)      # Save ls output as a string
+  arr=( $(ls) )  # Save ls output as an array of files
+  ${arr[@]:s:n}  # Retrieve n elements starting at index s
+----
+
+
+== {counter:index}. Arrays asociativos o diccionarios
+https://atareao.es/tutorial/scripts-en-bash/diccionarios-en-bash/[Artículo muy completo sobre diccionarios],
+parte del excelente tutorial https://atareao.es/tutorial/scripts-en-bash/[Scripts en Bash].
+
+Importante:  Sólo están disponibles a partir de Bash versión 4.
+
+[source,bash]
+----
+    /bin/bash --version
+----
+
+[source,bash]
+----
+    declare -A telefonos  # Se deben declarar explícitamente
+
+    telefonos[Juan]='123'
+    telefonos[Pedro]='456'
+    telefonos[Andres]='789'
+
+    echo ${telefonos[Juan]}    # acceder a un valor
+
+    echo ${telefonos[@]}       # acceder a todos los valores
+    echo ${telefonos[*]}       # acceder a todos los valores
+
+    echo ${!telefonos[@]}      # acceder a todos los indices
+    echo ${!telefonos[*]}      # acceder a todos los indices
+
+    for i in ${telefonos[@]}   # loop entre valores
+    do
+        echo $i
+    done
+
+    for i in ${!telefonos[@]}  # loop entre indices
+    do
+        echo "El telefono de $i es ${telefonos[$i]}"
+    done
+
+    telefonos+=[Irene]=777                 # añadiendo o reemplazando una tupla
+    telefonos+=([Ana]=123 [Irene]=456)     # añadiendo o reemplazando tuplas
+
+    unset telefonos[Juan]      # eliminando una tupla
+
+    unset telefonos            # eliminando el array
+
+    # Cuidado con los espacios:
+
+    telefonos+=([Ana Maria]=456)           # esto funciona...
+    unset telefonos[Ana Maria]             # pero esto no!
+
+    clave='Ana Maria'
+    unset telefonos[$clave]                # y esto tampoco!
+    unset telefonos["$clave"]              # pero esto si!
+
+----
