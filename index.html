@@ -109,6 +109,7 @@
               .replaceWith(function(e) {
                 return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
               });
+            $('#contents').find('pre code').each(function() { hljs.highlightElement(this); });
           }
         }
 
