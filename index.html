@@ -113,7 +113,45 @@
           }
         }
 
-        if(isRemote) {
+        // Archivos privados de publish: requieren Basic auth. El fetch va con
+        // credentials:'include' (el browser manda la clave guardada). Ante 401
+        // se ofrece el login de publish en un tab que se cierra solo, y se
+        // reintenta hasta que el usuario se autentique. Nunca via proxy.php.
+        var isPrivatePublish = /publish\.ip1\.cc\/private\//.test(s);
+
+        function privateLoginUrl() {
+          return s.replace(/(\/private\/[0-9a-f]{8}\/).*$/, '$1login');
+        }
+
+        function loadPrivate() {
+          return fetch(s, {credentials: 'include'}).then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.text();
+          }).then(renderContent);
+        }
+
+        function showPrivateLogin() {
+          $('#contents').html(
+            '<div style="text-align:center; padding-top:3rem;">' +
+            '<h1>🔒 Documento privado</h1>' +
+            '<p>Este archivo requiere una clave de acceso.</p>' +
+            '<p><button id="private-login-btn" style="font-size:1.1rem; padding:0.6rem 1.4rem; cursor:pointer;">Ingresar clave</button></p>' +
+            '<p style="color:#888;">Se abre una pestaña de publish.ip1.cc que se cierra sola; esta página carga el documento al autenticarte.</p>' +
+            '</div>');
+          $('#private-login-btn').on('click', function() {
+            window.open(privateLoginUrl());
+            var tries = 0;
+            var iv = setInterval(function() {
+              tries++;
+              if (tries > 150) { clearInterval(iv); return; }
+              loadPrivate().then(function() { clearInterval(iv); }).catch(function(){});
+            }, 1500);
+          });
+        }
+
+        if(isPrivatePublish) {
+          loadPrivate().catch(showPrivateLogin);
+        } else if(isRemote) {
           fetch(s)
             .then(function(response) {
               if (!response.ok) throw new Error('Network response was not ok');
