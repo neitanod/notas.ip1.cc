@@ -16,6 +16,26 @@
     <script src="inc/marked.min.js"></script>
     <script src="inc/marked-highlight.umd.min.js"></script>
     <script src="inc/highlight.min.js"></script>
+    <script>
+      // El Chromium 87 de la TV (webOS) trae un ICU recortado: new Date().toString()
+      // termina en "(-03)" donde el escritorio pone "(Argentina Standard Time)".
+      // Opal —el runtime sobre el que corre Asciidoctor.js— saca el nombre de la zona
+      // con match(/[A-Z]/g).join(""), y sin mayúsculas adentro del paréntesis eso es
+      // un join() sobre null: la conversión entera tira TypeError y la nota AsciiDoc
+      // se quedaba mostrando el texto crudo. Le devolvemos un paréntesis con el
+      // offset en mayúsculas, solo en los motores que tienen el problema.
+      (function() {
+        var original = Date.prototype.toString;
+        if (/\([^)]*[A-Z][^)]*\)/.test(original.call(new Date()))) { return; }
+        Date.prototype.toString = function() {
+          var s = original.call(this);
+          var zona = (s.match(/GMT[+-]\d{4}/) || ['UTC'])[0];
+          return /\([^)]*\)\s*$/.test(s)
+            ? s.replace(/\([^)]*\)\s*$/, '(' + zona + ')')
+            : s + ' (' + zona + ')';
+        };
+      })();
+    </script>
     <script src="inc/asciidoctor.min.js"></script>
     <script>
       // Diagnóstico: indicador visible de qué parser está cargado
@@ -101,15 +121,37 @@
           var t = extractTitle(content, md);
           if (t) document.title = t;
           var clean = stripFrontmatter(content);
-          if(md) {
-            $('#contents').html(_renderMD(clean));
-          } else {
-            $('#contents').html(Asciidoctor().convert(clean))
-              .find("span.icon")
-              .replaceWith(function(e) {
-                return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
-              });
-            $('#contents').find('pre code').each(function() { hljs.highlightElement(this); });
+          try {
+            if(md) {
+              $('#contents').html(_renderMD(clean));
+            } else {
+              $('#contents').html(Asciidoctor().convert(clean))
+                .find("span.icon")
+                .replaceWith(function(e) {
+                  return '<i class="fa fa-'+$(this).text().replace(/[\[\]]+/g,"")+'"/>';
+                });
+            }
+          } catch(e) {
+            // Un parser que explota dejaba en pantalla el texto crudo que había puesto
+            // el .load(), y parecía que la nota estaba "sin formato" por su culpa. Que
+            // el error se vea: es lo que se le pide a alguien que reporta el problema.
+            console.error('Fallo el render:', e);
+            $('#contents').html(
+              '<div style="background:#fee;color:#900;padding:8px;border:1px solid #c00;margin-bottom:10px">' +
+              '⚠️ No se pudo renderizar (' + (md ? 'Markdown' : 'AsciiDoc') + '): ' + (e && e.message) +
+              '</div><pre></pre>');
+            $('#contents').find('pre').text(clean);
+            return;
+          }
+          // El resaltado de AsciiDoc va aparte —en Markdown ya lo hizo marked-highlight
+          // mientras parseaba—: si highlight.js falla con un lenguaje raro, el documento
+          // ya está en pantalla y se queda ahí.
+          if(!md) {
+            try {
+              $('#contents').find('pre code').each(function() { hljs.highlightElement(this); });
+            } catch(e) {
+              console.warn('highlight.js fallo:', e);
+            }
           }
         }
 
